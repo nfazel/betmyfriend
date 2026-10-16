@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReportStatus {
+  NEW
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  createdAt     DateTime  @default(now()) 
+  updatedAt     DateTime  @updatedAt
+  profile       Profile?
+  sentSwipes    Swipe[]   @relation("SwipeSender")
+  receivedSwipes Swipe[]  @relation("SwipeReceiver")
+  user1Matches  Match[]   @relation("User1Matches")
+  user2Matches  Match[]   @relation("User2Matches")
+  sentMessages  Message[] @relation("MessageSender")
+  filedReports  Report[]  @relation("ReporterReports")
+  receivedReports Report[] @relation("ReportedUserReports")
+  auditLogs     AuditLog[]
+}
+
+model Profile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String
+  age         Int
+  location    String
+  bio         String?
+  interests   String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Swipe {
+  id           String   @id @default(uuid())
+  senderId     String
+  sender       User     @relation("SwipeSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId   String
+  receiver     User     @relation("SwipeReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  liked        Boolean
+  createdAt    DateTime @default(now())
+
+  @@unique([senderId, receiverId])
+}
+
+model Match {
+  id        String    @id @default(uuid())
+  user1Id   String
+  user1     User      @relation("User1Matches", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id   String
+  user2     User      @relation("User2Matches", fields: [user2Id], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  messages  Message[]
+
+  @@unique([user1Id, user2Id])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id               String       @id @default(uuid())
+  reporterId       String
+  reporter         User         @relation("ReporterReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUserId   String
+  reportedUser     User         @relation("ReportedUserReports", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  contentSnapshot  String
+  status           ReportStatus @default(NEW)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+}

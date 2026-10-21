@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Detect the application package
+        id: app
+        run: |
+          if [ -f package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "This pull request does not contain the application package yet. Application checks run on the merge commit that includes it."
+          fi
+
+      - name: Use Node.js 22
+        if: steps.app.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        if: steps.app.outputs.present == 'true'
+        run: npm ci
+
+      - name: Validate the Prisma schema
+        if: steps.app.outputs.present == 'true'
+        run: npx prisma validate
+
+      - name: Generate the Prisma client
+        if: steps.app.outputs.present == 'true'
+        run: npx prisma generate
+
+      - name: Typecheck
+        if: steps.app.outputs.present == 'true'
+        run: npx tsc --noEmit
+
+      - name: Build
+        if: steps.app.outputs.present == 'true'
+        run: npm run build
+
+      - name: Test
+        if: steps.app.outputs.present == 'true'
+        run: |
+          test_script=$(node -p 'const scripts = require("./package.json").scripts || {}; scripts.test || ""')
+          if [ -z "$test_script" ] || printf '%s' "$test_script" | grep -q "no test specified"; then
+            echo "No test script is configured. Skipping automated tests."
+          else
+            npm test
+          fi

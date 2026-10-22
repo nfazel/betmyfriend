@@ -36,20 +36,29 @@ jobs:
         if: steps.app.outputs.present == 'true'
         run: npm ci
 
+      # Non-production placeholder. Prisma reads this value and does not connect to it.
       - name: Validate the Prisma schema
         if: steps.app.outputs.present == 'true'
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/findafriend_ci
         run: npx prisma validate
 
       - name: Generate the Prisma client
         if: steps.app.outputs.present == 'true'
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/findafriend_ci
         run: npx prisma generate
 
       - name: Typecheck
         if: steps.app.outputs.present == 'true'
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/findafriend_ci
         run: npx tsc --noEmit
 
       - name: Build
         if: steps.app.outputs.present == 'true'
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/findafriend_ci
         run: npm run build
 
       - name: Test

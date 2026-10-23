@@ -29,16 +29,16 @@ export default function DiscoveryPage() {
     try {
       setLoading(true);
       setError('');
-  
+
       const res = await fetch('/api/discovery/feed?page=1', {
         cache: 'no-store',
       });
       if (!res.ok) {
         throw new Error('Failed to fetch discovery feed');
       }
-  
+
       const data = await res.json();
-  
+
       setProfiles(data.profiles || []);
       setCurrentIndex(0);
     } catch (err: unknown) {
@@ -52,12 +52,12 @@ export default function DiscoveryPage() {
 
   const handleAction = async (liked: boolean) => {
     if (submitting || currentIndex >= profiles.length) return;
-  
+
     const profile = profiles[currentIndex];
-  
+
     setSubmitting(true);
     setError('');
-  
+
     try {
       const res = await fetch('/api/discovery/action', {
         method: 'POST',
@@ -67,11 +67,11 @@ export default function DiscoveryPage() {
           liked,
         }),
       });
-  
+
       if (!res.ok) {
         throw new Error('Failed to submit action');
       }
-  
+
       if (currentIndex + 1 >= profiles.length) {
         await fetchFeed();
       } else {
